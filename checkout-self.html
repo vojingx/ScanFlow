@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自助收银 - ScanFlow</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="topbar-logo">ScanFlow</a>
+            <span class="topbar-title">🛒 自助收银</span>
+        </div>
+        <div class="topbar-right">
+            <a href="index.html" class="btn-back">返回首页</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="checkout-app"></div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/scanner.js"></script>
+    <script src="js/checkout.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            Checkout.init('self');
+        });
+    </script>
+</body>
+</html>

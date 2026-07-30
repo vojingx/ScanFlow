@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫码出入库 - ScanFlow</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="topbar-logo">ScanFlow</a>
+            <span class="topbar-title">扫码出入库</span>
+        </div>
+        <div class="topbar-right">
+            <a href="index.html" class="btn-back">返回首页</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- 标签页切换 -->
+        <div class="tabs">
+            <button class="tab active" data-tab="in" onclick="Inventory.switchTab('in')">📥 扫码入库</button>
+            <button class="tab" data-tab="out" onclick="Inventory.switchTab('out')">📤 扫码出库</button>
+            <button class="tab" data-tab="records" onclick="Inventory.switchTab('records')">📋 操作记录</button>
+        </div>
+
+        <!-- 入库面板 -->
+        <div id="panel-in" class="tab-panel">
+            <div class="card">
+                <div class="scan-area">
+                    <span class="scan-area-icon">📥</span>
+                    <div class="scan-area-title">扫码入库</div>
+                    <div class="scan-area-desc">点击下方按钮启动扫码，扫描商品条码即可入库</div>
+                    <div class="scan-buttons">
+                        <button class="btn btn-primary btn-lg" onclick="Inventory.startScan('in')">
+                            📷 扫码入库
+                        </button>
+                        <button class="btn btn-outline" onclick="Inventory.showManualInput('in')">
+                            ⌨️ 扫描异常 - 手动输入
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- 最近入库记录 -->
+            <div class="card">
+                <div class="card-title">最近入库</div>
+                <div id="recent-in-list"></div>
+            </div>
+        </div>
+
+        <!-- 出库面板 -->
+        <div id="panel-out" class="tab-panel" style="display:none;">
+            <div class="card">
+                <div class="scan-area">
+                    <span class="scan-area-icon">📤</span>
+                    <div class="scan-area-title">扫码出库</div>
+                    <div class="scan-area-desc">点击下方按钮启动扫码，扫描商品条码即可出库</div>
+                    <div class="scan-buttons">
+                        <button class="btn btn-warning btn-lg" onclick="Inventory.startScan('out')">
+                            📷 扫码出库
+                        </button>
+                        <button class="btn btn-outline" onclick="Inventory.showManualInput('out')">
+                            ⌨️ 扫描异常 - 手动输入
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- 最近出库记录 -->
+            <div class="card">
+                <div class="card-title">最近出库</div>
+                <div id="recent-out-list"></div>
+            </div>
+        </div>
+
+        <!-- 操作记录面板 -->
+        <div id="panel-records" class="tab-panel" style="display:none;">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <div class="card-title" style="margin-bottom:0;">全部操作记录</div>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-sm btn-secondary" onclick="Inventory.filterRecords('all')">全部</button>
+                        <button class="btn btn-sm btn-secondary" onclick="Inventory.filterRecords('in')">入库</button>
+                        <button class="btn btn-sm btn-secondary" onclick="Inventory.filterRecords('out')">出库</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>类型</th>
+                                <th>条码</th>
+                                <th>商品名称</th>
+                                <th>数量</th>
+                                <th>操作人</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 商品信息弹窗（新商品入库时填写） -->
+    <div id="product-modal" class="scan-modal">
+        <div class="scan-modal-content">
+            <div class="scan-modal-header">
+                <h3 id="product-modal-title">商品信息</h3>
+                <button class="scan-modal-close" onclick="Inventory.closeProductModal()">&times;</button>
+            </div>
+            <div id="product-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- 手动输入弹窗 -->
+    <div id="manual-modal" class="scan-modal">
+        <div class="scan-modal-content" style="max-width:400px;">
+            <div class="scan-modal-header">
+                <h3>手动输入条码</h3>
+                <button class="scan-modal-close" onclick="Inventory.closeManualModal()">&times;</button>
+            </div>
+            <div class="manual-input-area">
+                <div class="input-group">
+                    <label class="input-label">请输入商品条码</label>
+                    <input type="text" class="input-field" id="manual-input-field"
+                           placeholder="输入条码后按回车" autocomplete="off"
+                           onkeydown="if(event.key==='Enter')Inventory.submitManual()">
+                </div>
+                <button class="btn btn-primary btn-lg" onclick="Inventory.submitManual()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/scanner.js"></script>
+    <script src="js/inventory.js"></script>
+</body>
+</html>
