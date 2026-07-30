@@ -57,79 +57,11 @@
             </a>
         </div>
 
-        <!-- 数据管理 -->
-        <div class="data-footer">
-            <div class="data-footer-title">数据管理</div>
-            <div class="data-footer-buttons">
-                <button class="btn btn-sm btn-outline" onclick="App.exportData()">📤 导出数据</button>
-                <button class="btn btn-sm btn-outline" onclick="App.importData()">📥 导入数据</button>
-                <button class="btn btn-sm btn-danger" onclick="App.resetData()">🗑️ 清空数据</button>
-            </div>
-            <input type="file" id="import-file" accept="application/json,.json" style="display:none;" onchange="App.handleImportFile(event)">
-            <span class="data-footer-tip">数据可导出为文件自行保存，不依赖本浏览器；换设备时导入即可继续使用</span>
-        </div>
     </div>
 
     <script src="js/db.js"></script>
     <script src="js/common.js"></script>
     <script>
-        const App = {
-            // 导出数据为 JSON 文件，存在用户自己手里，而不是锁在浏览器里
-            exportData() {
-                const json = DB.exportData();
-                if (!json) {
-                    showToast('当前没有可导出的数据', 'default');
-                    return;
-                }
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                const d = new Date();
-                const pad = n => String(n).padStart(2, '0');
-                a.href = url;
-                a.download = `scanflow-data-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                showToast('数据已导出为文件', 'success');
-            },
-
-            // 触发文件选择
-            importData() {
-                document.getElementById('import-file').click();
-            },
-
-            // 处理导入的文件
-            handleImportFile(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = () => {
-                    try {
-                        const ok = DB.importData(reader.result);
-                        if (ok) {
-                            showToast('数据导入成功', 'success');
-                            updateStats();
-                        } else {
-                            showToast('文件格式不正确', 'error');
-                        }
-                    } catch (e) {
-                        showToast('导入失败：文件已损坏', 'error');
-                    }
-                    event.target.value = '';
-                };
-                reader.readAsText(file);
-            },
-
-            // 清空全部数据
-            resetData() {
-                if (confirm('确定要清空所有本地数据吗？\n（商品、库存、记录、交易将全部删除，且无法恢复）\n建议先「导出数据」备份。')) {
-                    DB.clearAll();
-                    showToast('数据已清空', 'success');
-                    updateStats();
-                }
-            }
-        };
-
         // 显示当前日期
         function updateDate() {
             const now = new Date();
