@@ -1,1 +1,1 @@
-{"products":[],"operations":[],"transactions":[],"staffPassword":"123456"}
+{"products":[{"barcode":"666","name":"666","price":0.1,"stock":1,"category":"666","minStock":10,"createdAt":1785484386050,"updatedAt":1785484386050}],"operations":[{"id":"ms8naxhfjsqnh1","type":"in","barcode":"666","productName":"666","quantity":1,"operator":"staff","note":"","timestamp":1785484386051}],"transactions":[],"staffPassword":"123456"}
