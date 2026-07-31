@@ -241,5 +241,11 @@ const Inventory = {
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', () => {
-    Inventory.renderRecent('in');
+    DB.init().then(() => Inventory.renderRecent('in'));
+    // 云端数据变化（他人操作）时自动刷新界面
+    DB.onSync = () => {
+        Inventory.renderRecent('in');
+        Inventory.renderRecent('out');
+        if (Inventory.currentTab === 'records') Inventory.renderRecords();
+    };
 });

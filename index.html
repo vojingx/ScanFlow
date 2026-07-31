@@ -59,6 +59,7 @@
 
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/db.js"></script>
     <script src="js/common.js"></script>
     <script>
@@ -80,8 +81,12 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            updateDate();
-            updateStats();
+            DB.init().then(() => {
+                updateDate();
+                updateStats();
+            });
+            // 云端数据变化时刷新统计卡片
+            DB.onSync = () => updateStats();
         });
     </script>
 </body>

@@ -1,2 +1,5 @@
 # 本地项目记忆与缓存，不纳入版本库
 .workbuddy/
+
+# 云端数据文件由网页运行时通过 GitHub API 维护，不纳入 git（避免推送冲突）
+data/db.json
