@@ -220,6 +220,8 @@ const DB = {
         } else {
             this.cache.products.push({
                 ...product,
+                category: product.category || '未分类',
+                minStock: (product.minStock != null && product.minStock >= 0) ? Number(product.minStock) : 10,
                 stock: product.stock || 0,
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
