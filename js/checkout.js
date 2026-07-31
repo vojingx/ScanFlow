@@ -273,7 +273,7 @@ const Checkout = {
                         <div class="success-title">支付成功</div>
                         <div class="success-amount">${formatMoney(tx.total)}</div>
 
-                        <div style="text-align:left;background:var(--bg);border-radius:var(--radius-sm);padding:16px;margin-bottom:24px;">
+                        <div id="receipt-print-area" style="text-align:left;background:var(--bg);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;">
                             <div class="summary-row">
                                 <span>交易单号</span>
                                 <span style="font-size:12px;">${tx.id}</span>
@@ -294,16 +294,20 @@ const Checkout = {
                                 <span>交易时间</span>
                                 <span>${formatTime(tx.timestamp)}</span>
                             </div>
+                            <div style="border-top:1px dashed var(--border);padding-top:12px;margin-top:12px;">
+                                <div class="input-label" style="margin-bottom:8px;">商品明细</div>
+                                ${tx.items.map(item => `
+                                    <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;">
+                                        <span>${escapeHtml(item.name)} × ${item.quantity}</span>
+                                        <span>${formatMoney(item.price * item.quantity)}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
 
-                        <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:16px;">
-                            <div class="input-label" style="margin-bottom:8px;">商品明细</div>
-                            ${tx.items.map(item => `
-                                <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;">
-                                    <span>${escapeHtml(item.name)} × ${item.quantity}</span>
-                                    <span>${formatMoney(item.price * item.quantity)}</span>
-                                </div>
-                            `).join('')}
+                        <div style="display:flex;gap:12px;margin-bottom:12px;">
+                            <button class="btn btn-outline" style="flex:1;" onclick="Checkout.printReceipt()">🖨️ 打印小票</button>
+                            <button class="btn btn-outline" style="flex:1;" onclick="Checkout.exportReceipt()">📄 导出小票</button>
                         </div>
 
                         <button class="btn btn-primary btn-lg" onclick="Checkout.newOrder()">
@@ -313,5 +317,39 @@ const Checkout = {
                 </div>
             </div>
         `;
+    },
+
+    // ==================== 小票打印 / 导出 ====================
+    printReceipt() {
+        window.print();
+    },
+
+    exportReceipt() {
+        const tx = this._lastTransaction;
+        if (!tx) return;
+        const html = this._receiptHtml(tx);
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `小票_${tx.id}.html`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('小票已导出', 'success');
+    },
+
+    _receiptHtml(tx) {
+        const paymentNames = { cash: '现金支付', wechat: '微信支付', alipay: '支付宝' };
+        const items = tx.items.map(i =>
+            `<tr><td>${escapeHtml(i.name)} × ${i.quantity}</td><td style="text-align:right;">${formatMoney(i.price * i.quantity)}</td></tr>`
+        ).join('');
+        return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>ScanFlow 收银小票</title>` +
+            `<style>body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:24px;max-width:360px;margin:auto;color:#111;}` +
+            `h2{text-align:center;margin:0 0 4px;} .center{text-align:center;color:#666;font-size:12px;} hr{border:none;border-top:1px dashed #999;margin:8px 0;}` +
+            `table{width:100%;border-collapse:collapse;} td{padding:4px 0;font-size:14px;} .total{border-top:1px dashed #999;margin-top:8px;padding-top:8px;font-weight:700;font-size:18px;display:flex;justify-content:space-between;}</style>` +
+            `</head><body><h2>ScanFlow 收银小票</h2><div class="center">${formatTime(tx.timestamp)}</div><hr>` +
+            `<table>${items}</table><div class="total"><span>合计</span><span>${formatMoney(tx.total)}</span></div>` +
+            `<div class="center" style="margin-top:8px;">支付方式：${paymentNames[tx.paymentMethod] || tx.paymentMethod}</div>` +
+            `<div class="center">单号：${tx.id}</div><div class="center" style="margin-top:14px;">谢谢惠顾，欢迎再次光临</div></body></html>`;
     },
 };
