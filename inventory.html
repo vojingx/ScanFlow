@@ -20,9 +20,10 @@
     <div class="container">
         <!-- 标签页切换 -->
         <div class="tabs">
-            <button class="tab active" data-tab="in" onclick="Inventory.switchTab('in')">📥 扫码入库</button>
-            <button class="tab" data-tab="out" onclick="Inventory.switchTab('out')">📤 扫码出库</button>
-            <button class="tab" data-tab="records" onclick="Inventory.switchTab('records')">📋 操作记录</button>
+            <button class="tab active" data-tab="in" onclick="Inventory.switchTab('in')">📥 入库</button>
+            <button class="tab" data-tab="out" onclick="Inventory.switchTab('out')">📤 出库</button>
+            <button class="tab" data-tab="products" onclick="Inventory.switchTab('products')">📦 商品库存</button>
+            <button class="tab" data-tab="records" onclick="Inventory.switchTab('records')">📋 记录</button>
         </div>
 
         <!-- 入库面板 -->
@@ -73,12 +74,22 @@
             </div>
         </div>
 
+        <!-- 商品库存面板 -->
+        <div id="panel-products" class="tab-panel" style="display:none;">
+            <div class="card">
+                <div class="card-title">📦 商品库存</div>
+                <div id="product-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
+                <div id="products-list"></div>
+            </div>
+        </div>
+
         <!-- 操作记录面板 -->
         <div id="panel-records" class="tab-panel" style="display:none;">
             <div class="card">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
                     <div class="card-title" style="margin-bottom:0;">全部操作记录</div>
-                    <div style="display:flex;gap:8px;">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="btn btn-sm btn-outline" onclick="Inventory.exportRecords()">📊 导出Excel</button>
                         <button class="btn btn-sm btn-secondary" onclick="Inventory.filterRecords('all')">全部</button>
                         <button class="btn btn-sm btn-secondary" onclick="Inventory.filterRecords('in')">入库</button>
                         <button class="btn btn-sm btn-secondary" onclick="Inventory.filterRecords('out')">出库</button>
