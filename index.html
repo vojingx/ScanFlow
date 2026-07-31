@@ -57,6 +57,10 @@
             </a>
         </div>
 
+        <!-- 今日营业报表 -->
+        <h2 style="font-size:18px;font-weight:700;margin:24px 0 16px;">📈 今日营业报表</h2>
+        <div class="report-grid" id="report-grid"></div>
+
     </div>
 
     <script src="js/config.js"></script>
@@ -80,13 +84,61 @@
             document.getElementById('stat-revenue').textContent = '\u00a5' + stats.todayRevenue.toFixed(2);
         }
 
+        // 今日营业报表
+        function renderReport() {
+            const el = document.getElementById('report-grid');
+            if (!el) return;
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const txs = DB.getTransactions(2000).filter(t => t.timestamp >= today.getTime());
+
+            const payNames = { cash: '现金', wechat: '微信', alipay: '支付宝' };
+            const payMap = {};
+            txs.forEach(t => {
+                payMap[t.paymentMethod] = payMap[t.paymentMethod] || { count: 0, amount: 0 };
+                payMap[t.paymentMethod].count++;
+                payMap[t.paymentMethod].amount += t.total;
+            });
+            const payHtml = Object.keys(payMap).length
+                ? Object.keys(payMap).map(m => `
+                    <div class="report-row">
+                        <span>${payNames[m] || m}</span>
+                        <span>${payMap[m].count} 笔 · ${formatMoney(payMap[m].amount)}</span>
+                    </div>`).join('')
+                : '<div class="report-empty">今日暂无交易</div>';
+
+            const prodMap = {};
+            txs.forEach(t => t.items.forEach(i => { prodMap[i.name] = (prodMap[i.name] || 0) + i.quantity; }));
+            const top = Object.entries(prodMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const topHtml = top.length
+                ? top.map(([name, q], idx) => `
+                    <div class="report-row">
+                        <span>${idx + 1}. ${escapeHtml(name)}</span>
+                        <span>${q} 件</span>
+                    </div>`).join('')
+                : '<div class="report-empty">今日暂无销售</div>';
+
+            const totalAmount = txs.reduce((s, t) => s + t.total, 0);
+            el.innerHTML = `
+                <div class="report-card">
+                    <div class="report-card-title">💰 收款方式</div>
+                    ${payHtml}
+                    <div class="report-row report-total"><span>合计</span><span>${formatMoney(totalAmount)}</span></div>
+                </div>
+                <div class="report-card">
+                    <div class="report-card-title">🔥 热销商品 Top5</div>
+                    ${topHtml}
+                </div>
+            `;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             DB.init().then(() => {
                 updateDate();
                 updateStats();
+                renderReport();
             });
-            // 云端数据变化时刷新统计卡片
-            DB.onSync = () => updateStats();
+            // 云端数据变化时刷新统计卡片与报表
+            DB.onSync = () => { updateStats(); renderReport(); };
         });
     </script>
 </body>
