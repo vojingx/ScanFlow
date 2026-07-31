@@ -19,6 +19,7 @@ const Inventory = {
 
         if (tab === 'in') this.renderRecent('in');
         if (tab === 'out') this.renderRecent('out');
+        if (tab === 'products') { this.renderProductFilters(); this.renderProducts(); }
         if (tab === 'records') this.renderRecords();
     },
 
@@ -104,6 +105,10 @@ const Inventory = {
         const body = document.getElementById('product-modal-body');
         document.getElementById('product-modal-title').textContent = '新商品入库';
 
+        // 已有分类，供 datalist 联想
+        const cats = [...new Set(DB.getProducts().map(p => p.category || '未分类'))]
+            .map(c => `<option value="${escapeHtml(c)}">`).join('');
+
         body.innerHTML = `
             <div style="margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);">
                 <span style="color:var(--text-secondary);font-size:14px;">条码：</span>
@@ -115,12 +120,21 @@ const Inventory = {
                     <input type="text" class="input-field" id="new-product-name" placeholder="请输入商品名称" autocomplete="off">
                 </div>
                 <div class="input-group">
+                    <label class="input-label">商品分类</label>
+                    <input type="text" class="input-field" id="new-product-category" placeholder="如：饮料 / 零食 / 日用品" list="category-list" autocomplete="off">
+                    <datalist id="category-list">${cats}</datalist>
+                </div>
+                <div class="input-group">
                     <label class="input-label">商品单价（元）</label>
                     <input type="number" class="input-field" id="new-product-price" placeholder="0.00" step="0.01" min="0">
                 </div>
                 <div class="input-group">
                     <label class="input-label">入库数量</label>
                     <input type="number" class="input-field" id="new-product-qty" value="1" min="1">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">库存预警阈值（≤此数标红）</label>
+                    <input type="number" class="input-field" id="new-product-minstock" value="10" min="0">
                 </div>
                 <button class="btn btn-primary btn-lg" onclick="Inventory.saveNewProduct('${escapeHtml(barcode)}', '${type}')">
                     确认入库
@@ -136,6 +150,9 @@ const Inventory = {
         const name = document.getElementById('new-product-name').value.trim();
         const price = parseFloat(document.getElementById('new-product-price').value) || 0;
         const qty = parseInt(document.getElementById('new-product-qty').value) || 1;
+        const category = document.getElementById('new-product-category').value.trim() || '未分类';
+        const minStockRaw = parseInt(document.getElementById('new-product-minstock').value);
+        const minStock = isNaN(minStockRaw) ? 10 : minStockRaw;
 
         if (!name) {
             showToast('请输入商品名称', 'error');
@@ -147,6 +164,8 @@ const Inventory = {
             name,
             price,
             stock: qty,
+            category,
+            minStock,
         });
 
         DB.addOperation({
@@ -164,6 +183,93 @@ const Inventory = {
 
     closeProductModal() {
         document.getElementById('product-modal').classList.remove('active');
+    },
+
+    // ==================== 商品库存列表 ====================
+    productFilter: 'all',
+
+    renderProductFilters() {
+        const bar = document.getElementById('product-filters');
+        if (!bar) return;
+        const products = DB.getProducts();
+        const cats = ['all', ...[...new Set(products.map(p => p.category || '未分类'))]];
+        const labels = { all: '全部' };
+        bar.innerHTML = cats.map(c => `
+            <button class="btn btn-sm ${this.productFilter === c ? 'btn-primary' : 'btn-secondary'}"
+                    onclick="Inventory.filterProducts('${escapeHtml(c)}')">${labels[c] || escapeHtml(c)}</button>
+        `).join('');
+    },
+
+    filterProducts(cat) {
+        this.productFilter = cat;
+        this.renderProductFilters();
+        this.renderProducts();
+    },
+
+    renderProducts() {
+        const container = document.getElementById('products-list');
+        if (!container) return;
+        const products = DB.getProducts();
+        if (products.length === 0) {
+            container.innerHTML = `<div class="empty-state"><span class="empty-state-icon">📦</span><div>暂无商品，请先扫码入库</div></div>`;
+            return;
+        }
+        const filter = this.productFilter || 'all';
+        const list = products.filter(p => filter === 'all' || (p.category || '未分类') === filter);
+        if (list.length === 0) {
+            container.innerHTML = `<div class="empty-state"><div>该分类下暂无商品</div></div>`;
+            return;
+        }
+        container.innerHTML = list.map(p => {
+            const min = (p.minStock != null) ? p.minStock : 10;
+            const low = p.stock <= min;
+            return `
+                <div class="product-row ${low ? 'low-stock' : ''}">
+                    <div class="product-row-main">
+                        <div class="product-row-name">${escapeHtml(p.name)} ${low ? '⚠️' : ''}</div>
+                        <div class="product-row-meta">
+                            <span class="cat-badge">${escapeHtml(p.category || '未分类')}</span>
+                            <span class="product-row-barcode">${escapeHtml(p.barcode)}</span>
+                        </div>
+                    </div>
+                    <div class="product-row-stock">
+                        <div class="product-row-stock-num">${p.stock}</div>
+                        <div class="product-row-stock-label">库存${low ? ' · 预警' : ''}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    // ==================== 操作记录导出 Excel(CSV) ====================
+    exportRecords() {
+        const ops = DB.getOperations(100000);
+        if (ops.length === 0) {
+            showToast('暂无记录可导出', 'default');
+            return;
+        }
+        const header = ['时间', '类型', '条码', '商品名称', '数量', '操作人'];
+        const rows = ops.map(o => [
+            formatTime(o.timestamp),
+            o.type === 'in' ? '入库' : '出库',
+            o.barcode,
+            o.productName,
+            (o.type === 'in' ? '+' : '-') + o.quantity,
+            o.operator,
+        ]);
+        const csv = [header, ...rows]
+            .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+            .join('\r\n');
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        a.href = url;
+        a.download = `操作记录_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('操作记录已导出', 'success');
     },
 
     // ==================== 最近操作渲染 ====================
@@ -200,6 +306,7 @@ const Inventory = {
     filterRecords(filter) {
         this.recordFilter = filter;
         document.querySelectorAll('#panel-records .btn-sm').forEach(btn => {
+            if (btn.classList.contains('btn-outline')) return;
             btn.classList.toggle('btn-primary', btn.textContent.trim() === ({all:'全部',in:'入库',out:'出库'})[filter]);
             btn.classList.toggle('btn-secondary', !(btn.textContent.trim() === ({all:'全部',in:'入库',out:'出库'})[filter]));
         });
@@ -239,13 +346,14 @@ const Inventory = {
     },
 };
 
-// 页面加载时初始化
-document.addEventListener('DOMContentLoaded', () => {
-    DB.init().then(() => Inventory.renderRecent('in'));
-    // 云端数据变化（他人操作）时自动刷新界面
-    DB.onSync = () => {
-        Inventory.renderRecent('in');
-        Inventory.renderRecent('out');
-        if (Inventory.currentTab === 'records') Inventory.renderRecords();
-    };
-});
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        DB.init().then(() => Inventory.renderRecent('in'));
+        // 云端数据变化（他人操作）时自动刷新界面
+        DB.onSync = () => {
+            Inventory.renderRecent('in');
+            Inventory.renderRecent('out');
+            if (Inventory.currentTab === 'records') Inventory.renderRecords();
+            if (Inventory.currentTab === 'products') { Inventory.renderProductFilters(); Inventory.renderProducts(); }
+        };
+    });
