@@ -1,8 +1,8 @@
 # ScanFlow - 智能扫码出入库与收银结算系统
 
-一个基于纯前端技术（HTML + CSS + JavaScript）的轻量级扫码出入库和收银结算系统，无需后端服务器。
+一个基于纯前端技术（HTML + CSS + JavaScript）的轻量级扫码出入库和收银结算系统，无需自建后端服务器。
 
-数据以**文件方式**由用户自行管理（导出 / 导入 JSON），不锁定在某一台设备的浏览器中；同时在本机保留一份工作副本以便连续使用，换设备时导入文件即可继续。
+数据通过 **GitHub 仓库作为云端数据库** 实现多设备实时共享：所有商品、库存、出入库记录、交易记录都存放在仓库的 `data/db.json`，网页直接通过 GitHub API 读写。浏览器本地仅作为离线兜底副本，换设备打开同一网址即可看到同一份数据。
 
 ## 功能概览
 
@@ -27,14 +27,29 @@
 ## 技术栈
 - HTML5 + CSS3 + 原生 JavaScript
 - [html5-qrcode](https://github.com/mebjas/html5-qrcode) - 条码/二维码扫描库
-- localStorage - 本机工作副本（数据可导出为文件，不依赖本浏览器）
+- GitHub Contents API - 云端数据读写（仓库 `data/db.json`）
+- localStorage - 本机离线兜底副本
 
-## 数据管理
-- 首页底部「数据管理」提供三个操作：
-  - **📤 导出数据**：把全部商品、库存、记录、交易导出为 JSON 文件，保存在你自己的设备里
-  - **📥 导入数据**：换设备 / 换浏览器时，导入之前的 JSON 文件即可继续使用
-  - **🗑️ 清空数据**：清空本机所有数据（建议先导出备份）
-- 由于是纯静态站点（部署在 GitHub Pages 等），没有后端数据库，因此数据由用户以文件形式持有，不会被锁死在某台设备的浏览器中。
+## 云端同步（多设备共享）
+
+数据存放在仓库的 `data/db.json`，网页通过 GitHub API 读写，手机 / 电脑 / 多人打开同一网址即可看到同一份库存与记录。
+
+### 开启同步（首次需配置令牌）
+编辑 `js/config.js`，把 `TOKEN` 填成「仅限本仓库、权限 Contents: Read & Write」的【细粒度令牌】(fine-grained PAT)：
+
+1. GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens**
+2. Generate → 选择本仓库（如 `vojingx/ScanFlow`）
+3. Repository permissions → **Contents = Read and write**
+4. 复制 `ghu_` 开头的令牌，填入 `js/config.js` 的 `TOKEN: ''` 中，提交并重新部署
+
+> 用细粒度令牌可把风险限制在「这一个仓库的数据文件」，即使泄露也不影响你其他仓库。
+> 留空则自动降级为「仅本浏览器」模式：功能正常，但不跨设备同步。
+
+### 同步机制
+- 启动与每 15 秒自动拉取最新数据，并合并他人操作（按记录 id / 商品条码并集，避免互相覆盖丢记录）
+- 每次修改后台防抖（约 0.6 秒）静默推送到云端
+- 购物车为设备私有，不参与云端同步
+- 本地浏览器始终保留一份副本，断网时仍可正常使用
 
 ## 使用方法
 
@@ -69,11 +84,14 @@ ScanFlow/
 ├── css/
 │   └── style.css           # 全局样式
 ├── js/
-│   ├── db.js               # 数据存储层（localStorage）
+│   ├── config.js           # 云端同步配置（GitHub 仓库 / 令牌）
+│   ├── db.js               # 数据存储层（GitHub 云端 + 本地兜底）
 │   ├── common.js           # 公共工具函数
 │   ├── scanner.js          # 扫码工具封装
 │   ├── inventory.js        # 出入库业务逻辑
 │   └── checkout.js         # 收银结算业务逻辑
+├── data/
+│   └── db.json             # 云端数据库（运行时由网页通过 API 维护，不纳入 git）
 └── README.md
 ```
 
