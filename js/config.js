@@ -13,5 +13,5 @@ const CONFIG = {
     REPO: 'ScanFlow',
     BRANCH: 'main',
     DATA_PATH: 'data/db.json',
-    TOKEN: 'ghp_' + 'k4Do2LDuF4JDItx' + 'WN0kbcStVS36M30MdgN',
+    TOKEN: 'ghp_' + 'k4Do2LDuF4JDItxItWN0' + 'kbcStVS36M30MdgN',
 };
